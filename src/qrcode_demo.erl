@@ -3,9 +3,9 @@
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
 % You may obtain a copy of the License at
-% 
+%
 % http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 % Unless required by applicable law or agreed to in writing, software
 % distributed under the License is distributed on an "AS IS" BASIS,
 % WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,17 +16,17 @@
 
 %% Shows how to achieve HOTP/SHA1 with a mobile phone using Google Authenticator.
 %%
-%% This module is a rag-bag of supporting functions, many of which are simplified 
-%% extracts from the core libs (?_common, ?_crypto, ?_math, ?_image). This is to 
+%% This module is a rag-bag of supporting functions, many of which are simplified
+%% extracts from the core libs (?_common, ?_crypto, ?_math, ?_image). This is to
 %% allow a full-cycle demo without requiring open-sourcing of the entire platform.
-%% 
+%%
 %% @ref QR Code: ISO/IEC 18004 (2000, 1st Edition)
 
-%% Google Authenticator Phone App 
+%% Google Authenticator Phone App
 %% iPhone:  <http://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8>
 %% Android: <https://market.android.com/details?id=com.google.android.apps.authenticator>
 
-%% Google Authenticator URL Specification 
+%% Google Authenticator URL Specification
 % @ref <http://code.google.com/p/google-authenticator/wiki/KeyUriFormat>
 %  otpauth://TYPE/LABEL?PARAMETERS
 %  TYPE: hotp | totp
@@ -47,7 +47,7 @@
 -define(PERIOD, 30).
 
 run() ->
-	Passcode = crypto:sha(<<"password">>),
+	Passcode = crypto:hash(sha, <<"password">>),
 	run(<<"demo@mydomain.com">>, Passcode, ?PERIOD).
 
 run(Domain, Passcode, Seconds) ->
