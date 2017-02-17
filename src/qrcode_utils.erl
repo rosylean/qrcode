@@ -12,7 +12,7 @@
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
--module(qrcode_demo).
+-module(qrcode_utils).
 
 %% Shows how to achieve HOTP/SHA1 with a mobile phone using Google Authenticator.
 %%
@@ -46,27 +46,11 @@
 -define(TTY(Term), io:format(user, "[~p] ~p~n", [?MODULE, Term])).
 -define(PERIOD, 30).
 
-run() ->
-	Passcode = crypto:hash(sha, <<"password">>),
-	run(<<"demo@mydomain.com">>, Passcode, ?PERIOD).
-
-run(Domain, Passcode, Seconds) ->
-	PasscodeBase32 = base32:encode(Passcode),
-	Period = list_to_binary(integer_to_list(Seconds)),
-	Token = <<"otpauth://totp/", Domain/binary, "?period=", Period/binary, "&secret=", PasscodeBase32/binary>>,
-	?TTY({token, Token}),
-	QRCode = qrcode:encode(Token),
-	Image = simple_png_encode(QRCode),
-	Filename = "qrcode.png",
-	ok = file:write_file(Filename, Image),
-	?TTY({image, filename:absname(Filename)}),
-	QRCode.
-
 %% Very simple PNG encoder for demo purposes
 simple_png_encode(#qrcode{dimension = Dim, data = Data}) ->
 	MAGIC = <<137, 80, 78, 71, 13, 10, 26, 10>>,
 	Size = Dim * 8,
-	IHDR = png_chunk(<<"IHDR">>, <<Size:32, Size:32, 8:8, 2:8, 0:24>>), 
+	IHDR = png_chunk(<<"IHDR">>, <<Size:32, Size:32, 8:8, 2:8, 0:24>>),
 	PixelData = get_pixel_data(Dim, Data),
 	IDAT = png_chunk(<<"IDAT">>, PixelData),
 	IEND = png_chunk(<<"IEND">>, <<>>),
@@ -83,38 +67,23 @@ get_pixel_data(Dim, Data) ->
 
 get_pixels(<<>>, Dim, Dim, Acc) ->
 	Acc;
+
 get_pixels(Bin, Count, Dim, Acc) ->
 	<<RowBits:Dim/bits, Bits/bits>> = Bin,
 	Row = get_pixels0(RowBits, <<0>>), % row filter byte
 	FullRow = binary:copy(Row, 8),
 	get_pixels(Bits, Count + 1, Dim, <<Acc/binary, FullRow/binary>>).
-	
+
 get_pixels0(<<1:1, Bits/bits>>, Acc) ->
 	Black = binary:copy(<<0>>, 24),
 	get_pixels0(Bits, <<Acc/binary, Black/binary>>);
+
 get_pixels0(<<0:1, Bits/bits>>, Acc) ->
 	White = binary:copy(<<255>>, 24),
 	get_pixels0(Bits, <<Acc/binary, White/binary>>);
+
 get_pixels0(<<>>, Acc) ->
 	Acc.
-
-%%
-totp() ->
-	Key = crypto:sha(<<"password">>),	
-	totp(Key, ?PERIOD).
-totp(Key, Period) ->
-	T = unow() div Period,
-	{hotp(Key, T - 1), hotp(Key, T), hotp(Key, T + 1)}.
-%% RFC-4226 "HOTP: An HMAC-Based One-Time Password Algorithm"
-%% @ref <http://tools.ietf.org/html/rfc4226>
-hotp(Key, Count) when is_binary(Key), is_integer(Count) ->
-	HS = crypto:sha_mac(Key, <<Count:64>>),
-	<<_:19/binary, _:4, Offset:4>> = HS,
-	<<_:Offset/binary, _:1, P:31, _/binary>> = HS,
-	HOTP = integer_to_list(P rem 1000000),
-	Pad = lists:duplicate(6 - length(HOTP), $0),
-	list_to_binary([Pad, HOTP]).
-
 
 -define(UNIX_TIME_ZERO, 62167219200).
 
